@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>message to the future</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  html, body{ margin:0; background:transparent; font-family:'Sora',system-ui,sans-serif; color:#F6F1FB; }
+  body{ padding:4px; }
+  textarea{
+    display:block; width:100%; height:140px; box-sizing:border-box; resize:none;
+    background:rgba(36,27,54,0.55); color:#F6F1FB; font-family:inherit; font-size:0.9rem;
+    border:1px solid rgba(246,241,251,0.12); border-radius:12px; padding:12px;
+    box-shadow:inset 0 2px 6px rgba(9,6,17,0.4);
+  }
+  textarea:focus{ outline:none; box-shadow:inset 0 2px 6px rgba(9,6,17,0.4), 0 0 0 2px #C9B6EC; }
+  textarea::placeholder{ color:rgba(246,241,251,0.42); }
+  button{
+    margin-top:12px; background:#C9B6EC; color:#2D2247; border:0; padding:11px 22px;
+    border-radius:10px; font-weight:600; font-family:inherit; font-size:0.9rem; cursor:pointer;
+  }
+  button:disabled{ opacity:0.6; cursor:default; }
+  #note{ margin-top:8px; min-height:1.3em; font-size:0.78rem; color:rgba(246,241,251,0.62); }
+</style>
+</head>
+<body>
+  <textarea id="msg" placeholder="write to her, from her..."></textarea>
+  <button id="send">save this</button>
+  <div id="note"></div>
+
+<script>
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mvkggybd';
+
+const btn = document.getElementById('send');
+const note = document.getElementById('note');
+const box = document.getElementById('msg');
+
+btn.addEventListener('click', async ()=>{
+  const val = box.value.trim();
+  if(!val) return;
+
+  btn.disabled = true;
+  note.textContent = 'sending...';
+
+  try{
+    const res = await fetch(FORMSPREE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: new URLSearchParams({ message: val })
+    });
+
+    if(res.ok){
+      note.textContent = 'sent ✓ — it\'s on its way to me';
+      box.value = '';
+    } else {
+      let detail = '';
+      try{
+        const data = await res.json();
+        detail = (data.errors && data.errors.map(e=>e.message).join(', ')) || data.error || '';
+      }catch(e){}
+      console.error('Formspree refused the message:', res.status, detail);
+      note.textContent = 'hmm, that didn\'t go through (error ' + res.status + (detail ? ': ' + detail : '') + ') — try again?';
+    }
+  } catch(err){
+    console.error('Formspree request failed:', err);
+    note.textContent = 'hmm, that didn\'t go through — check your connection and try again (' + (err && err.message ? err.message : 'network error') + ')';
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>
